@@ -1,11 +1,11 @@
 # Key Classification using CNN
 
 ## Overview
-This project implements a deep learning pipeline for **musical key classification** using PyTorch. The model predicts one of **24 classes (12 major + 12 minor keys)** from audio signals using time-frequency representations.
+This project implements a deep learning pipeline for musical key classification using PyTorch. The model predicts one of 24 classes (12 major + 12 minor keys) from audio signals using time-frequency representations. The pipeline is based on a paper by Filip Korzeniowski and Gerhard Widme (https://arxiv.org/pdf/1706.02921)
 
 Features include:
 - Log-Mel Spectrograms (default)
-- Constant-Q Transform (CQT)
+- Constant Q Transform (CQT)
 - Chroma Features
 - Dataset augmentation via pitch shifting
 - Training, evaluation, and visualization tools
@@ -29,6 +29,7 @@ Features include:
 ## Dependencies
 
 pip install numpy matplotlib librosa torch scikit-learn
+
 sudo apt install sox
 
 - Python ≥ 3.8
