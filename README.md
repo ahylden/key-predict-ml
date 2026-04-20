@@ -78,9 +78,9 @@ Optional Arguments:
 - Path to the audio file to analyze when using --predict-key
 
 --test-batch
-
 - Test model on the full dataset and log predictions vs expected
---epochsb
+
+--epochs
 - Number of training epochs (default= 10)
 
 --load-model
@@ -106,16 +106,16 @@ Optional Arguments:
 ## Code
 
 Written by me:
-- Model architecture
+- Model architecture (modeled after reference paper)
 - Training loop
-- Dataset pipeline
-- Feature extraction + caching
+- Dataset pipeline (modeled after reference paper)
+- Feature extraction and caching
 - Augmentation integration
 - Visualization tools
 
 Adapted concepts:
-- PyTorch training workflows
-- Librosa feature extraction
+- PyTorch training workflows (adapted from lecture slides/examples)
+- Librosa feature extraction (adapted from librosa library examples)
 
 External libraries:
 - Librosa
