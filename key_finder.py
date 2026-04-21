@@ -7,6 +7,7 @@ import os
 import json
 import argparse
 from glob import glob
+from pathlib import Path
 from collections import Counter
 import torch
 import torch.nn as nn
@@ -16,14 +17,16 @@ from sklearn.model_selection import train_test_split
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--predict-key", action="store_true", help="Run model on a single audio file to predict its key")
-parser.add_argument("--song", help="Path to the audio file to analyze when using --predict-key")
+parser.add_argument("--find-key", action="store_true", help="Run model on a single audio file or whole directory to find its key")
+parser.add_argument("--song", default=None, help="Path to the audio file to analyze when using --find-key")
+parser.add_argument("--batch", default=None, help="Path to the directory with audio files to analyze when using --find-key")
 parser.add_argument("--test-batch", action="store_true", help="Test model on the full dataset and log predictions vs expected")
-parser.add_argument("--epochs", default=10, help="Number of training epochs (default= 10). When running training sweep this should be multiple of 10")
-parser.add_argument("--load-model", default="./models/best_key_model.pt", help="Path to a saved model, default is best model from training")
+parser.add_argument("--epochs", default=100, help="Number of training epochs (default= 100). When running training sweep this should be multiple of 10")
+parser.add_argument("--load-model", default=None, help="Path to a saved model, default is best model from training")
 parser.add_argument("--data-size", default=None, help="Limit the number of samples used for training/testing")
-parser.add_argument("--cqt", action="store_true", help="Use Constant Q Transform (CQT) features instead of log-mel spectrograms")
-parser.add_argument("--chroma", action="store_true", help="Use chroma features instead of log-mel spectrograms")
+parser.add_argument("--cqt", action="store_true", help="Use Constant Q Transform (CQT) spectrograms")
+parser.add_argument("--chroma", action="store_true", help="Use chroma spectrograms")
+parser.add_argument("--logmel", action="store_true", help="Use log-mel spectrograms")
 parser.add_argument("--build-cache", action="store_true", help="Precompute and cache audio features for faster training/testing")
 parser.add_argument("--run-training-sweep", action="store_true", help="Run sweep of trainings with different feature types (log-mel, cqt, chroma) and different epoch lengths")
 
@@ -484,10 +487,10 @@ def build_dataloaders(spec_type):
 def get_spec_type():
     if args.chroma:
         spec_type = "chroma"
-    elif args.cqt:
-        spec_type = "cqt"
-    else:
+    elif args.logmel:
         spec_type = "logmel"
+    else:
+        spec_type = "cqt"
     return spec_type
 
 def run_training_sweep():
@@ -531,6 +534,38 @@ def run_training_sweep():
         plot_train_results(acc_results, spec_type=spec_type, epochs=epochs_run, save_dir="training_plots", overlay=True)
     plot_train_results(comp_results, spec_type=get_spec_type(), epochs=epochs_run, save_dir="training_plots", overlay=True)  
 
+def load_model(model, device, model_type):
+    if args.load_model != None:
+        if not os.path.exists(args.load_model):
+            print("Could not find existing model, please train model first")
+            sys.exit()
+        model.load_state_dict(torch.load(args.load_model))
+    else:
+        model.load_state_dict(torch.load(f"./models/best_{model_type}_model_100.pt"))
+    model.to(device)
+
+def find_key(model, device, song):
+    if not os.path.exists(song):
+            print(f"Could not find song at file path {song}")
+            sys.exit()
+    if args.chroma:
+        spectrogram = chroma_spec(song)
+    elif args.logmel:
+        spectrogram = logmel(song, n_fft=8192, n_mels=105, hop_length=8820)
+    else:
+        spectrogram = cqt_log_spec(song)
+    x_tensor = torch.tensor(spectrogram)[None, None, :, :].to(device)
+    with torch.no_grad():
+        pred = model(x_tensor).argmax(dim=1)
+        key = key_return(pred)
+        print(f"Predicted Key for song {song}: {key}")
+    
+    key = key.replace(" ", "_")
+    file = Path(song)
+    rename = file.with_name(f"{file.stem}_{key}{file.suffix}")
+    file.rename(rename)
+
+
 # ----------- Classifier -----------
 model = FeatureExtractor(get_spec_type())
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -541,25 +576,18 @@ if args.build_cache:
     print("Cache build complete")
     sys.exit()
 
-if(args.predict_key):
-    if not os.path.exists(args.song):
-        print(f"Could not find song at file path {args.song}")
-        sys.exit()
-    elif not os.path.exists(args.load_model):
-        print("Could not find existing model, please train model first")
-        sys.exit()
-    model.load_state_dict(torch.load(args.load_model))
-    model.to(device)
-    if args.chroma:
-        spectrogram = chroma_spec(args.song)
-    elif args.cqt:
-        spectrogram = cqt_log_spec(args.song)
-    else:
-        spectrogram = logmel(args.song, n_fft=8192, n_mels=105, hop_length=8820)
-        x_tensor = torch.tensor(spectrogram)[None, None, :, :].to(device)
-    with torch.no_grad():
-        pred = model(x_tensor).argmax(dim=1)
-        print(f"Predicted Key: {key_return(pred)}")
+if(args.find_key):
+    load_model(model, device, get_spec_type())
+    if args.song != None:
+        find_key(model, device, args.song)
+    elif args.batch != None:
+        if not os.path.exists(args.batch):
+            print(f"Could not directory at path {args.batch}")
+            sys.exit()
+        songs = glob(os.path.join(args.batch, "*.wav")) + glob(os.path.join(args.batch, "*.mp3"))
+        for song in songs:
+            find_key(model, device, song)
+        
 elif(args.test_batch):
     if not os.path.exists(args.load_model):
         print("Could not find existing model, please train model first")

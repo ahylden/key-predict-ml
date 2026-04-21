@@ -66,22 +66,33 @@ python key_shift.py
 
 ## How to Run Model
 
-Train:
-- python key_finder.py
+Steps 1-3 are optional as pre trained models are included in ./models
+
+1. Download dataset
+2. Create Augmented dataset
+    - python key_shift.py
+3. Train model
+    - python key_finder.py (default is 100 epochs, use --epochs to change)
+4. Find Keys
+    - python key_finder.py --find-key (use either --song or --batch)
 
 Optional Arguments:
 
---predict-key
-- Run model on a single audio file to predict its key
+--find-key
+- Run model on a single audio or whole directory file to find its key
 
 --song
-- Path to the audio file to analyze when using --predict-key
+- Path to the audio file to analyze when using --find-key (ex: ./songs/song.mp3)
+
+--batch
+- Path to the directory with audio files to analyze when using --find-key (ex ./songs)
+- supported file types are .mp3 and .wav
 
 --test-batch
 - Test model on the full dataset and log predictions vs expected
 
 --epochs
-- Number of training epochs (default= 10)
+- Number of training epochs (default= 100) When running training sweep this should be multiple of 10
 
 --load-model
 - Path to a saved model, default is best model from training

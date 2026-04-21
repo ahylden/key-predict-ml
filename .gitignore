@@ -3,5 +3,6 @@ feature_cache/*
 giantsteps-key-dataset/*
 test_plots/*
 training_plots/*
+songs/*
 *.mp3
 *.wav
