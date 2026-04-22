@@ -95,16 +95,20 @@ Optional Arguments:
 - Number of training epochs (default= 100) When running training sweep this should be multiple of 10
 
 --load-model
-- Path to a saved model, default is best model from training
+- Path to a saved model, default is best CQT model from training. When using a model of non CQT type, specify --logmel or --chroma when running
 
 --data-size
 - Limit the number of samples used for training/testing
 
 --cqt
-- Use Constant Q Transform (CQT) features instead of log-mel spectrograms
+- This is the default type and does not necessarily need to be specified
+- Use Constant Q Transform (CQT) spectrograms. Used in training or key finding.
+
+--logmel
+- Use logmel features instead of CQT spectrograms. Used in training or key finding.. Used in training or key finding.
 
 --chroma
-- Use chroma features instead of log-mel spectrograms
+- Use chroma features instead of CQT spectrograms. Used in training or key finding.
 
 --build-cache
 - Precompute and store audio features for selected feature type (default= logmel if no other arg specified) for faster training/testing
